@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor de Canvas Mejorado</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 0;
+            background-color: #1e1e1e;
+            color: #f0f0f0;
+        }
+        #controls {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            background-color: #333;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        label {
+            margin-right: 10px;
+        }
+        canvas {
+            border: 2px solid #444;
+            display: block;
+            margin: 0 auto;
+            background-color: #2a2a2a;
+        }
+        .selected {
+            stroke: red;
+            stroke-width: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <div>
+            <label for="shape">Selecciona una forma:</label>
+            <select id="shape">
+                <option value="rectangle">Rectángulo</option>
+                <option value="circle">Círculo</option>
+            </select>
+        </div>
+        <div>
+            <label for="color">Selecciona un color:</label>
+            <input type="color" id="color" value="#0064ff">
+        </div>
+        <button id="clear">Limpiar Canvas</button>
+        <button id="delete">Eliminar Seleccionado</button>
+    </div>
+    <canvas id="canvas" width="800" height="600"></canvas>
+    <script>
+        // Obtener referencias a los elementos
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const shapeSelect = document.getElementById('shape');
+        const colorPicker = document.getElementById('color');
+        const clearButton = document.getElementById('clear');
+        const deleteButton = document.getElementById('delete');
+
+        let currentShape = 'rectangle';
+        let shapes = [];
+        let selectedShapeIndex = null;
+
+        // Manejar la selección de formas
+        shapeSelect.addEventListener('change', (e) => {
+            currentShape = e.target.value;
+        });
+
+        // Manejar el clic en el canvas para dibujar formas
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            // Comprobar si se ha hecho clic en una forma existente
+            selectedShapeIndex = shapes.findIndex(shape => isWithinShape(x, y, shape));
+
+            if (selectedShapeIndex === -1) {
+                let shape;
+                const color = colorPicker.value;
+                if (currentShape === 'rectangle') {
+                    shape = { type: 'rectangle', x, y, width: 100, height: 50, color };
+                } else if (currentShape === 'circle') {
+                    shape = { type: 'circle', x, y, radius: 50, color };
+                }
+                shapes.push(shape);
+                selectedShapeIndex = shapes.length - 1;
+            }
+
+            drawShapes();
+        });
+
+        // Función para comprobar si un punto está dentro de una forma
+        function isWithinShape(x, y, shape) {
+            if (shape.type === 'rectangle') {
+                return x >= shape.x && x <= shape.x + shape.width &&
+                       y >= shape.y && y <= shape.y + shape.height;
+            } else if (shape.type === 'circle') {
+                const dx = x - shape.x;
+                const dy = y - shape.y;
+                return dx * dx + dy * dy <= shape.radius * shape.radius;
+            }
+            return false;
+        }
+
+        // Función para dibujar todas las formas en el canvas
+        function drawShapes() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            shapes.forEach((shape, index) => {
+                ctx.beginPath();
+                ctx.fillStyle = shape.color;
+                if (shape.type === 'rectangle') {
+                    ctx.rect(shape.x, shape.y, shape.width, shape.height);
+                } else if (shape.type === 'circle') {
+                    ctx.arc(shape.x, shape.y, shape.radius, 0, Math.PI * 2);
+                }
+                if (index === selectedShapeIndex) {
+                    ctx.lineWidth = 3;
+                    ctx.strokeStyle = 'red';
+                } else {
+                    ctx.lineWidth = 1;
+                    ctx.strokeStyle = 'black';
+                }
+                ctx.fill();
+                ctx.stroke();
+            });
+        }
+
+        // Manejar el botón de limpiar
+        clearButton.addEventListener('click', () => {
+            shapes = [];
+            selectedShapeIndex = null;
+            drawShapes();
+        });
+
+        // Manejar el botón de eliminar
+        deleteButton.addEventListener('click', () => {
+            if (selectedShapeIndex !== null) {
+                shapes.splice(selectedShapeIndex, 1);
+                selectedShapeIndex = null;
+                drawShapes();
+            }
+        });
+
+        // Manejar la traslación de las formas seleccionadas
+        document.addEventListener('keydown', (e) => {
+            if (selectedShapeIndex !== null) {
+                const shape = shapes[selectedShapeIndex];
+                switch (e.key) {
+                    case 'ArrowUp':
+                        shape.y -= 10;
+                        break;
+                    case 'ArrowDown':
+                        shape.y += 10;
+                        break;
+                    case 'ArrowLeft':
+                        shape.x -= 10;
+                        break;
+                    case 'ArrowRight':
+                        shape.x += 10;
+                        break;
+                    case '+': // Escalar hacia arriba
+                        scaleShape(shape, 1.1);
+                        break;
+                    case '-': // Escalar hacia abajo
+                        scaleShape(shape, 0.9);
+                        break;
+                }
+                drawShapes();
+            }
+        });
+
+        // Función para escalar formas
+        function scaleShape(shape, factor) {
+            if (shape.type === 'rectangle') {
+                shape.width *= factor;
+                shape.height *= factor;
+            } else if (shape.type === 'circle') {
+                shape.radius *= factor;
+            }
+        }
+    </script>
+</body>
+</html>
